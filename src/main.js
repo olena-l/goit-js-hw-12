@@ -16,51 +16,6 @@ let page = 1;
 let searchQuery = '';
 let totalHits = 0;
 
-form.addEventListener('submit', async event => {
-  event.preventDefault();
-  clearGallery(gallery);
-  loadMoreBtn.classList.add('visually-hidden');
-
-  const search = event.target['search-text'].value.trim();
-  if (!search) {
-    iziToast.error({
-      backgroundColor: '#EF4040',
-      messageColor: '#FAFAFB',
-      theme: 'dark',
-      progressBarColor: '#B51B1B',
-      maxWidth: '432',
-      messageSize: '16',
-      position: 'topRight',
-      message: `Input field should not be empty.`,
-    });
-    return;
-  }
-
-  searchQuery = search;
-  page = 1;
-  toggleLoader(true);
-
-  try {
-    const { hits, totalHits: newTotalHits } = await fetchData(
-      searchQuery,
-      page
-    );
-
-    totalHits = newTotalHits;
-    if (hits.length === 0) {
-      renderError();
-    } else {
-      formGallery(hits, gallery);
-      toggleLoadMoreBtn(hits.length > 0);
-    }
-  } catch (error) {
-    renderError();
-  } finally {
-    toggleLoader(false);
-    form.reset();
-  }
-});
-
 loadMoreBtn.addEventListener('click', async () => {
   page += 1;
   toggleLoader(true);
@@ -77,7 +32,15 @@ loadMoreBtn.addEventListener('click', async () => {
       toggleLoadMoreBtn(false);
     } else {
       formGallery(hits, gallery);
-      toggleLoadMoreBtn(true);
+      if (gallery.children.length >= totalHits) {
+        toggleLoadMoreBtn(false);
+        iziToast.error({
+          message: "We're sorry, but you've reached the end of search results.",
+          backgroundColor: '#EF4040',
+        });
+      } else {
+        toggleLoadMoreBtn(true);
+      }
       scrollToNextGroup();
     }
   } catch (error) {
@@ -85,6 +48,60 @@ loadMoreBtn.addEventListener('click', async () => {
   } finally {
     toggleLoader(false);
     loaderMore.classList.add('visually-hidden');
+  }
+});
+
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  clearGallery(gallery);
+  loadMoreBtn.classList.add('visually-hidden');
+  const search = event.target['search-text'].value.trim();
+  if (!search) {
+    iziToast.error({
+      backgroundColor: '#EF4040',
+      messageColor: '#FAFAFB',
+      theme: 'dark',
+      progressBarColor: '#B51B1B',
+      maxWidth: '432',
+      messageSize: '16',
+      position: 'topRight',
+      message: `Input field cannot be empty.`,
+    });
+    return;
+  }
+
+  searchQuery = search;
+  page = 1;
+  toggleLoader(true);
+
+  try {
+    const { hits, totalHits: newTotalHits } = await fetchData(
+      searchQuery,
+      page
+    );
+
+    totalHits = newTotalHits;
+
+    if (hits.length === 0) {
+      renderError();
+    } else {
+      formGallery(hits, gallery);
+
+      if (gallery.children.length >= totalHits) {
+        toggleLoadMoreBtn(false);
+        iziToast.error({
+          message: "We're sorry, but you've reached the end of search results.",
+          backgroundColor: '#EF4040',
+        });
+      } else {
+        toggleLoadMoreBtn(true);
+      }
+    }
+  } catch (error) {
+    renderError();
+  } finally {
+    toggleLoader(false);
+    form.reset();
   }
 });
 
